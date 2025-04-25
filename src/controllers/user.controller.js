@@ -390,6 +390,24 @@ const getUserChannelProfile = asyncHandler(async (req, res) => {
         .json(new ApiResponse(200, channel[0], "Channel fetched successfully"))
 })
 
+const getUserById = asyncHandler(async (req, res) => {
+    const { userId } = req.params
+
+    if (!userId?.trim) {
+        throw new ApiError(400, "userId is missing")
+    }
+
+    const user = await User.findById(userId).select("username fullName avatar")
+
+    if (!user) {
+        throw new ApiError(404, "User does not exists")
+    }
+
+    return res
+        .status(200)
+        .json(new ApiResponse(200, user, "User fetched successfully"))
+})
+
 const getWatchHistory = asyncHandler(async (req, res) => {
     const user = await User.aggregate([
         {
@@ -449,5 +467,6 @@ export {
     updateAvatar,
     updateCoverImage,
     getUserChannelProfile,
+    getUserById,
     getWatchHistory,
 }
