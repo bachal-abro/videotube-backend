@@ -53,7 +53,8 @@ const getAllVideos = asyncHandler(async (req, res) => {
         },
         {
             $project: {
-                owner: "$owner.username",
+                ownerName: "$owner.username",
+                ownerAvatar: "$owner.avatar",
                 title: 1,
                 videoFile: 1,
                 thumbnail: 1,
