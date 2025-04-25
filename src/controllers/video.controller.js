@@ -189,43 +189,6 @@ const getVideoById = asyncHandler(async (req, res) => {
         },
         {
             $lookup: {
-                from: "users",
-                localField: "owner",
-                foreignField: "_id",
-                as: "owner",
-                pipeline: [
-                    {
-                        $lookup: {
-                            from: "subscriptions",
-                            localField: "_id",
-                            foreignField: "channel",
-                            as: "subscribers",
-                        },
-                    },
-                    {
-                        $addFields: {
-                            isSubscribed: {
-                                $cond: {
-                                    if: {
-                                        $in: [
-                                            req.user?._id,
-                                            "$subscribers.subscriber",
-                                        ],
-                                    },
-                                    then: true,
-                                    else: false,
-                                },
-                            },
-                            subscribers: {
-                                $size: "$subscribers",
-                            },
-                        },
-                    },
-                ],
-            },
-        },
-        {
-            $lookup: {
                 from: "likes",
                 localField: "_id",
                 foreignField: "video",
