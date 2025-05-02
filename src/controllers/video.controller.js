@@ -180,11 +180,59 @@ const getVideoById = asyncHandler(async (req, res) => {
         { $set: { views: videoViews[0].viewsCount } },
         { new: true }
     );
-
     const video = await Video.aggregate([
         {
             $match: {
                 _id: new mongoose.Types.ObjectId(videoId),
+            },
+        },
+        {
+            $lookup: {
+                from: "users",
+                localField: "owner",
+                foreignField: "_id",
+                as: "owner",
+                pipeline: [
+                    {
+                        $lookup: {
+                            from: "subscriptions",
+                            localField: "_id",
+                            foreignField: "channel",
+                            as: "subscribers",
+                        },
+                    },
+                    {
+                        $addFields: {
+                            isSubscribed: {
+                                $cond: {
+                                    if: {
+                                        $in: [
+                                            req.user?._id,
+                                            "$subscribers.subscriber",
+                                        ],
+                                    },
+                                    then: true,
+                                    else: false,
+                                },
+                            },
+                            subscribers: {
+                                $size: "$subscribers",
+                            },
+                        },
+                    },
+                    {
+                        $project: {
+                            coverImage: 0,
+                            email: 0,
+                            watchHistory: 0,
+                            password: 0,
+                            createdAt: 0,
+                            updatedAt: 0,
+                            refreshToken: 0,
+                            __v: 0, // optionally remove version key too
+                        },
+                    },
+                ],
             },
         },
         {
@@ -213,11 +261,12 @@ const getVideoById = asyncHandler(async (req, res) => {
             $unwind: "$owner",
         },
     ]);
+    
 
     if (!video) {
         throw new ApiError(400, "Video not found in Database");
     }
-
+    
     return res
         .status(200)
         .json(new ApiResponse(200, video[0], "Video found successfully"));
