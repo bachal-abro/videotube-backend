@@ -7,7 +7,6 @@ import { asyncHandler } from "../utils/asyncHandler.js";
 
 const toggleSubscription = asyncHandler(async (req, res) => {
     const { channelId } = req.params;
-    // TODO: toggle subscription
 
     if (!channelId) {
         throw new ApiError(400, "Channel id not specified");
@@ -19,24 +18,45 @@ const toggleSubscription = asyncHandler(async (req, res) => {
     });
 
     if (subscription) {
+        const userId = req?.user?._id;
+        const subscribersList = await Subscription.find({ channel: channelId });
+        let isSubscribed = false;
+        subscribersList.filter((sub) => {
+            isSubscribed = sub.subscriber.toString() === userId.toString();
+        });
+
+        const subscribersCount = subscribersList.length;
         return res
             .status(200)
             .json(
-                new ApiResponse(200, subscription, {}, "Subscription deleted")
+                new ApiResponse(
+                    200,
+                    { isSubscribed, subscribersCount },
+                    {},
+                    "Subscription deleted successfully"
+                )
             );
     } else {
         const newSubscription = await Subscription.create({
             channel: channelId,
             subscriber: req?.user?._id,
         });
+        const userId = req?.user?._id;
+        const subscribersList = await Subscription.find({ channel: channelId });
+        let isSubscribed = false;
+        subscribersList.filter((sub) => {
+            isSubscribed = sub.subscriber.toString() === userId.toString();
+        });
+
+        const subscribersCount = subscribersList.length;
         return res
             .status(200)
             .json(
                 new ApiResponse(
                     200,
-                    newSubscription,
+                    { isSubscribed, subscribersCount },
                     {},
-                    "New subscription done successfully"
+                    "Subscribers created successfully"
                 )
             );
     }
@@ -60,27 +80,6 @@ const getChannelSubscribers = asyncHandler(async (req, res) => {
                 subscribersList,
                 {},
                 "Subscribers fetched successfully"
-            )
-        );
-});
-// controller to return subscriber list of a channel
-const getSubscribersCount = asyncHandler(async (req, res) => {
-    const { channelId } = req.params;
-
-    const getSubscribersCount = await Subscription.find({ channel: channelId });
-
-    if (!subscribersList) {
-        throw new ApiError(404, "Subscribers not found");
-    }
-
-    return res
-        .status(200)
-        .json(
-            new ApiResponse(
-                200,
-                (subscribersList.length),
-                {},
-                "Subscribers count fetched successfully"
             )
         );
 });
@@ -112,7 +111,6 @@ const getSubscribedChannels = asyncHandler(async (req, res) => {
 });
 
 const getSubscriptionStatus = asyncHandler(async (req, res) => {
-
     const { channelId } = req.params;
     const userId = req?.user?._id;
     const subscribersList = await Subscription.find({ channel: channelId });
@@ -121,13 +119,13 @@ const getSubscriptionStatus = asyncHandler(async (req, res) => {
         isSubscribed = sub.subscriber.toString() === userId.toString();
     });
 
-    const subscribersCount = subscribersList.length
+    const subscribersCount = subscribersList.length;
     return res
         .status(200)
         .json(
             new ApiResponse(
                 200,
-                {isSubscribed, subscribersCount},
+                { isSubscribed, subscribersCount },
                 {},
                 "Subscribers fetched successfully"
             )
