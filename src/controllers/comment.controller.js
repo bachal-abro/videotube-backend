@@ -6,11 +6,16 @@ import { asyncHandler } from "../utils/asyncHandler.js";
 
 const getVideoComments = asyncHandler(async (req, res) => {
     const { videoId } = req.params;
-    const { page = 1, limit = 10 } = req.query;
+    const { page = 1, limit = 10, sort = 'desc' } = req.query;
 
     if (!videoId) {
         throw new ApiError(400, "Invalid video id");
     }
+
+    const sortOrder = sort === 'asc' ? 1 : -1;
+
+    // Count total number of comments for this video
+    const totalCommentsCount = await Comment.countDocuments({ video: videoId });
 
     const comments = await Comment.aggregate([
         { $match: { video: new mongoose.Types.ObjectId(videoId) } },
@@ -20,7 +25,7 @@ const getVideoComments = asyncHandler(async (req, res) => {
                 localField: "owner",
                 foreignField: "_id",
                 as: "owner",
-                pipeline:[
+                pipeline: [
                     {
                         $project: {
                             coverImage: 0,
@@ -30,10 +35,10 @@ const getVideoComments = asyncHandler(async (req, res) => {
                             createdAt: 0,
                             updatedAt: 0,
                             refreshToken: 0,
-                            __v: 0, // optionally remove version key too
+                            __v: 0,
                         },
                     },
-                ]
+                ],
             },
         },
         {
@@ -42,7 +47,7 @@ const getVideoComments = asyncHandler(async (req, res) => {
                 localField: "_id",
                 foreignField: "comment",
                 as: "likes",
-            }
+            },
         },
         {
             $addFields: {
@@ -50,47 +55,36 @@ const getVideoComments = asyncHandler(async (req, res) => {
                     $cond: {
                         if: { $in: [req.user?._id, "$likes.likedBy"] },
                         then: true,
-                        else: false
-                    }
+                        else: false,
+                    },
                 },
-                likes: {
-                    $size: "$likes"
-                }
-            }
+                likes: { $size: "$likes" },
+            },
         },
-        {
-            $unwind: "$owner"
-        },
-        
+        { $unwind: "$owner" },
+        { $sort: { createdAt: sortOrder } },
         { $skip: (page - 1) * limit },
         { $limit: parseInt(limit) },
     ]);
 
-    if (!comments) {
-        throw new ApiError(400, "comments not found");
-    }
-
-    return res
-        .status(200)
-        .json(
-            new ApiResponse(
-                200,
-                comments,
-                {
-                    totalCommentsCount: comments.length,
-                    page: page,
-                    limit: limit,
-                },
-                "comments fetched successfully"
-            )
-        );
+    return res.status(200).json(
+        new ApiResponse(
+            200,
+            comments,
+            {
+                totalCommentsCount,
+                page: Number(page),
+                limit: Number(limit),
+            },
+            "comments fetched successfully"
+        )
+    );
 });
 
 const addComment = asyncHandler(async (req, res) => {
     const userId = req?.user?._id;
     const { videoId } = req.params;
     const { content } = req.body;
-
     if (!userId) {
         throw new ApiError(400, "Invalid user ID");
     }
@@ -98,7 +92,7 @@ const addComment = asyncHandler(async (req, res) => {
         throw new ApiError(400, "Invalid video ID");
     }
     if (!content) {
-        throw new ApiError(400, "Comments content is required");
+        throw new ApiError(400, "Comment content is required");
     }
     const comment = await Comment.create({
         owner: userId,
