@@ -84,32 +84,37 @@ const getVideoComments = asyncHandler(async (req, res) => {
 const addComment = asyncHandler(async (req, res) => {
     const userId = req?.user?._id;
     const { videoId } = req.params;
-    const { content } = req.body;
-    if (!userId) {
-        throw new ApiError(400, "Invalid user ID");
+    const { content, parentCommentId } = req.body;
+
+    if (!userId) throw new ApiError(400, "Invalid user ID");
+    if (!videoId) throw new ApiError(400, "Invalid video ID");
+    if (!content) throw new ApiError(400, "Comment content is required");
+
+    // If it's a reply, ensure the parent comment exists
+    let parentComment = null;
+    if (parentCommentId) {
+        parentComment = await Comment.findById(parentCommentId);
+        if (!parentComment) {
+            throw new ApiError(404, "Parent comment not found");
+        }
     }
-    if (!videoId) {
-        throw new ApiError(400, "Invalid video ID");
-    }
-    if (!content) {
-        throw new ApiError(400, "Comment content is required");
-    }
+
     const comment = await Comment.create({
         owner: userId,
         video: videoId,
-        content: content,
+        content,
+        parentComment: parentCommentId || null,
     });
 
     if (!comment) {
-        throw new ApiError(400, " Error creating comment");
+        throw new ApiError(500, "Error creating comment");
     }
 
-    return res
-        .status(200)
-        .json(
-            new ApiResponse(200, comment, {}, "Comment created successfully")
-        );
+    return res.status(201).json(
+        new ApiResponse(201, comment, {}, "Comment created successfully")
+    );
 });
+
 
 const updateComment = asyncHandler(async (req, res) => {
     const { commentId } = req.params;
@@ -152,4 +157,4 @@ const deleteComment = asyncHandler(async (req, res) => {
     );
 });
 
-export { getVideoComments, addComment, updateComment, deleteComment };
+export { getVideoComments, addComment, updateComment, deleteComment  };
