@@ -229,7 +229,7 @@ const getVideoById = asyncHandler(async (req, res) => {
                             createdAt: 0,
                             updatedAt: 0,
                             refreshToken: 0,
-                            __v: 0, // optionally remove version key too
+                            __v: 0,
                         },
                     },
                 ],
@@ -244,6 +244,14 @@ const getVideoById = asyncHandler(async (req, res) => {
             },
         },
         {
+            $lookup: {
+                from: "dislikes",
+                localField: "_id",
+                foreignField: "video",
+                as: "dislikes",
+            },
+        },
+        {
             $addFields: {
                 isLiked: {
                     $cond: {
@@ -252,8 +260,18 @@ const getVideoById = asyncHandler(async (req, res) => {
                         else: false,
                     },
                 },
+                isDisliked: {
+                    $cond: {
+                        if: { $in: [req.user?._id, "$dislikes.dislikedBy"] },
+                        then: true,
+                        else: false,
+                    },
+                },
                 likes: {
                     $size: "$likes",
+                },
+                dislikes: {
+                    $size: "$dislikes",
                 },
             },
         },
@@ -261,15 +279,14 @@ const getVideoById = asyncHandler(async (req, res) => {
             $unwind: "$owner",
         },
     ]);
-    
 
     if (!video) {
         throw new ApiError(400, "Video not found in Database");
     }
-    
+
     return res
         .status(200)
-        .json(new ApiResponse(200, video[0], "Video found successfully"));
+        .json(new ApiResponse(200, video[0], {}, "Video found successfully"));
 });
 
 const updateVideo = asyncHandler(async (req, res) => {

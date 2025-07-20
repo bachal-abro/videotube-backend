@@ -16,6 +16,7 @@ const toggleVideoLike = asyncHandler(async (req, res) => {
         likedBy: userId,
         video: videoId,
     });
+    
     let message = "Like removed successfully"
     if (!removeLike) {
         message = "Like created successfully"
@@ -62,7 +63,6 @@ const toggleCommentLike = asyncHandler(async (req, res) => {
     return res
         .status(200)
         .json(new ApiResponse(200, {isLiked, likes:likesList.length}, {}, message));
-
 });
 
 const toggleTweetLike = asyncHandler(async (req, res) => {

@@ -50,6 +50,14 @@ const getVideoComments = asyncHandler(async (req, res) => {
             },
         },
         {
+            $lookup: {
+                from: "dislikes",
+                localField: "_id",
+                foreignField: "comment",
+                as: "dislikes",
+            },
+        },
+        {
             $addFields: {
                 isLiked: {
                     $cond: {
@@ -58,7 +66,15 @@ const getVideoComments = asyncHandler(async (req, res) => {
                         else: false,
                     },
                 },
+                isDisliked: {
+                    $cond: {
+                        if: { $in: [req.user?._id, "$dislikes.dislikedBy"] },
+                        then: true,
+                        else: false,
+                    },
+                },
                 likes: { $size: "$likes" },
+                dislikes: { $size: "$dislikes" },
             },
         },
         { $unwind: "$owner" },
@@ -66,7 +82,7 @@ const getVideoComments = asyncHandler(async (req, res) => {
         { $skip: (page - 1) * limit },
         { $limit: parseInt(limit) },
     ]);
-
+    
     return res.status(200).json(
         new ApiResponse(
             200,
