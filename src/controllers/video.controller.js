@@ -6,14 +6,13 @@ import { ApiResponse } from "../utils/ApiResponse.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { uploadOnCloudinary } from "../utils/cloudinary.js";
 
-const getAllVideos = asyncHandler(async (req, res) => {
+const getVideosFromSubscriptions = asyncHandler(async (req, res) => {
     const {
         page = 1,
         limit = 10,
         query,
         sortBy,
         sortType = "desc",
-        userId,
     } = req.query;
 
     const sortTypeDirection = sortType === "desc" ? -1 : 1;
@@ -29,6 +28,44 @@ const getAllVideos = asyncHandler(async (req, res) => {
                 localField: "owner",
                 foreignField: "_id",
                 as: "owner",
+                pipeline: [
+                    {
+                        $lookup: {
+                            from: "subscriptions",
+                            localField: "_id",
+                            foreignField: "channel",
+                            as: "subscribers",
+                        },
+                    },
+                    {
+                        $addFields: {
+                            isSubscribed: {
+                                $cond: {
+                                    if: {
+                                        $in: [
+                                            req.user?._id,
+                                            "$subscribers.subscriber",
+                                        ],
+                                    },
+                                    then: true,
+                                    else: false,
+                                },
+                            },
+                        },
+                    },
+                    {
+                        $project: {
+                            coverImage: 0,
+                            email: 0,
+                            watchHistory: 0,
+                            password: 0,
+                            createdAt: 0,
+                            updatedAt: 0,
+                            refreshToken: 0,
+                            __v: 0,
+                        },
+                    },
+                ],
             },
         },
         {
@@ -36,8 +73,7 @@ const getAllVideos = asyncHandler(async (req, res) => {
         },
         {
             $match: {
-                ...(userId && { owner: new mongoose.Types.ObjectId(userId) }),
-                ...(query && { title: query }),
+                "owner.isSubscribed": true,
             },
         },
         {
@@ -66,10 +102,99 @@ const getAllVideos = asyncHandler(async (req, res) => {
         },
     ]);
 
+    const totalVideos = await Video.countDocuments();
+
+    const totalPages = Math.ceil(totalVideos / limit);
+
+    if (!videos || videos.length === 0) {
+        new ApiError(400, "Failed to fetched videos");
+    }
+
+    return res.status(200).json(
+        new ApiResponse(
+            200,
+            videos,
+            {
+                curruntPage: parseInt(page),
+                totalPages,
+                pageSize: parseInt(limit),
+                totalIems: totalVideos,
+            },
+            "All videos fetched successfully"
+        )
+    );
+});
+
+const getAllVideos = asyncHandler(async (req, res) => {
+    const {
+        page = 1,
+        limit = 10,
+        query,
+        sortBy,
+        sortType = "desc",
+        userId,
+    } = req.query;
+
+    const sortTypeDirection = sortType === "desc" ? -1 : 1;
+    // INFORMATION: get all videos based on query, sort, pagination
+
+    // IDEAL: count the number of videos in only one call to reduce calls to database
+
+    // TODO: handle sortBy query
+    const videos = await Video.aggregate([
+        {
+            $match: {
+                isPublished: true,
+            },
+        },
+        {
+            $lookup: {
+                from: "users",
+                localField: "owner",
+                foreignField: "_id",
+                as: "owner",
+            },
+        },
+        {
+            $unwind: "$owner",
+        },
+        {
+            $match: {
+                ...(userId && { owner: new mongoose.Types.ObjectId(userId) }),
+                ...(query && { $regex: query, $options: "i" }),
+            },
+        },
+        {
+            $sort: {
+                createdAt: sortTypeDirection,
+            },
+        },
+        {
+            $skip: (page - 1) * limit,
+        },
+        {
+            $limit: parseInt(limit),
+        },
+        {
+            $project: {
+                _id: 1,
+                ownerName: "$owner.username",
+                ownerAvatar: "$owner.avatar",
+                title: 1,
+                videoFile: 1,
+                thumbnail: 1,
+                duration: 1,
+                views: 1,
+                isPublished: 1,
+                createdAt: 1,
+            },
+        },
+    ]);
+
     // TODO: Remove this when we have calculated the number of videos
     const totalVideos = await Video.countDocuments({
         ...(userId && { owner: userId }),
-        ...(query && { title: query }),
+        ...(query && { $regex: query, $options: "i" }),
     });
 
     const totalPages = Math.ceil(totalVideos / limit);
@@ -365,6 +490,7 @@ const togglePublishStatus = asyncHandler(async (req, res) => {
 
 export {
     getAllVideos,
+    getVideosFromSubscriptions,
     publishVideo,
     getVideoById,
     updateVideo,
