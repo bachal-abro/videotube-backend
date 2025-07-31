@@ -16,10 +16,10 @@ const toggleVideoLike = asyncHandler(async (req, res) => {
         likedBy: userId,
         video: videoId,
     });
-    
-    let message = "Like removed successfully"
+
+    let message = "Like removed successfully";
     if (!removeLike) {
-        message = "Like created successfully"
+        message = "Like created successfully";
         await Like.create({ likedBy: userId, video: videoId });
     }
 
@@ -31,11 +31,17 @@ const toggleVideoLike = asyncHandler(async (req, res) => {
 
     return res
         .status(200)
-        .json(new ApiResponse(200, {isLiked, likes:likesList.length}, {}, message));
+        .json(
+            new ApiResponse(
+                200,
+                { isLiked, likes: likesList.length },
+                {},
+                message
+            )
+        );
 });
 
 const toggleCommentLike = asyncHandler(async (req, res) => {
-
     const { commentId } = req.params;
     const userId = req?.user?._id;
 
@@ -48,9 +54,9 @@ const toggleCommentLike = asyncHandler(async (req, res) => {
         comment: commentId,
     });
 
-    let message = "Like removed successfully"
+    let message = "Like removed successfully";
     if (!removeLike) {
-        message = "Like created successfully"
+        message = "Like created successfully";
         await Like.create({ likedBy: userId, comment: commentId });
     }
 
@@ -62,7 +68,14 @@ const toggleCommentLike = asyncHandler(async (req, res) => {
 
     return res
         .status(200)
-        .json(new ApiResponse(200, {isLiked, likes:likesList.length}, {}, message));
+        .json(
+            new ApiResponse(
+                200,
+                { isLiked, likes: likesList.length },
+                {},
+                message
+            )
+        );
 });
 
 const toggleTweetLike = asyncHandler(async (req, res) => {
@@ -92,16 +105,56 @@ const toggleTweetLike = asyncHandler(async (req, res) => {
 });
 
 const getLikedVideos = asyncHandler(async (req, res) => {
-    //TODO: get all liked videos
     const userId = req?.user?._id;
 
-    const videos = await Like.find({ likedBy: userId }).select("video");
-
-    console.log(videos);
+    const videos = await Like.aggregate([
+        {
+            $match: { likedBy: new mongoose.Types.ObjectId(userId) },
+        },
+        {
+            $lookup: {
+                from: "videos",
+                localField: "video",
+                foreignField: "_id",
+                as: "videos",
+                pipeline: [
+                    {
+                        $lookup: {
+                            from: "users",
+                            localField: "owner",
+                            foreignField: "_id",
+                            as: "owner",
+                            pipeline: [
+                                {
+                                    $project: {
+                                        username: 1,
+                                        fullName: 1,
+                                    },
+                                },
+                            ],
+                        },
+                    },
+                    { $unwind: "$owner" },
+                ],
+            },
+        },
+        {
+            $unwind: "$videos",
+        },
+        {
+            $replaceRoot: { newRoot: "$videos" }, // Return just the video objects
+        },
+    ]);
 
     return res
         .status(200)
         .json(new ApiResponse(200, videos, {}, "Liked videos fetched"));
 });
 
-export { toggleCommentLike, toggleTweetLike, toggleVideoLike, getLikedVideos };
+const clearLikedVideos = asyncHandler(async (req, res) => {
+    const userId = req.user._id;
+
+    await Like.deleteMany({ likedBy: userId });
+    return res.status(200).json(new ApiResponse(200, [], [], "All likes made by you are removed"))
+});
+export { toggleCommentLike, toggleTweetLike, toggleVideoLike, getLikedVideos, clearLikedVideos };
