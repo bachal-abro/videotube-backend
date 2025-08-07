@@ -5,42 +5,53 @@ const videoSchema = new Schema(
     {
         videoFile: {
             type: String, // cloudinary url
-            required: true
+            required: true,
         },
         thumbnail: {
             type: String, // cloudinary url
-            required: true
+            required: true,
         },
         title: {
             type: String,
-            required: true
+            required: true,
         },
         description: {
             type: String,
-            required: true
+            required: true,
         },
         duration: {
             type: Number,
-            required: true
+            required: true,
         },
         views: {
             type: Number,
-            default: 0
+            default: 0,
         },
-        isPublished: {
-            type: Boolean,
-            default: true
+        visibility: {
+            type: String,
+            enum: ["public", "private", "unlisted"],
+            default: "public",
+        },
+        category: {
+            type: String,
+            required: true,
+            // Optional: Add enum if you want predefined categories
+            // enum: ['education', 'music', 'comedy', 'gaming', 'vlog', ...]
+        },
+        tags: {
+            type: [String],
+            default: [],
         },
         owner: {
             type: Schema.Types.ObjectId,
-            ref: "User"
-        }
+            ref: "User",
+        },
     },
     {
-        timestamps: true
+        timestamps: true,
     }
-)
+);
 
-videoSchema.plugin(mongooseAggregatePaginate)
+videoSchema.plugin(mongooseAggregatePaginate);
 
-export const Video = mongoose.model("Video", videoSchema)
+export const Video = mongoose.model("Video", videoSchema);

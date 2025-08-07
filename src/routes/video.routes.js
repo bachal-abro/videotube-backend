@@ -5,8 +5,9 @@ import {
     getVideosFromSubscriptions,
     getVideoById,
     publishVideo,
-    togglePublishStatus,
+    toggleVisibilityStatus,
     updateVideo,
+    getAllVideosOfUser,
 } from "../controllers/video.controller.js"
 import {verifyJWT} from "../middlewares/auth.middleware.js"
 import {upload} from "../middlewares/multer.middleware.js"
@@ -42,6 +43,7 @@ router
     .delete(deleteVideo)
     .patch(upload.single("thumbnail"), updateVideo);
 
-router.route("/toggle/publish/:videoId").patch(togglePublishStatus);
+router.route("/toggle/visibility/:videoId").patch(toggleVisibilityStatus);
+router.route("/user/current").get(getAllVideosOfUser);
 
 export default router
