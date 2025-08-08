@@ -88,7 +88,7 @@ const getPlaylistById = asyncHandler(async (req, res) => {
         },
         {
             $addFields: {
-                "videos.owner.fullName": "$owner.fullName", // Add the fullName inside video
+                "videos.owner.displayName": "$owner.displayName", // Add the displayName inside video
                 "videos.owner.username": "$owner.username",
             },
         },

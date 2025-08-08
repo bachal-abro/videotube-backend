@@ -28,7 +28,7 @@ const getVideoComments = asyncHandler(async (req, res) => {
                 pipeline: [
                     {
                         $project: {
-                            coverImage: 0,
+                            banner: 0,
                             email: 0,
                             watchHistory: 0,
                             password: 0,

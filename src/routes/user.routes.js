@@ -10,7 +10,7 @@ import {
     registerUser,
     updateAccountDetails,
     updateAvatar,
-    updateCoverImage,
+    updateBanner,
     getUserById,
     removeVideoFromWatchHistory,
     clearWatchHistory,
@@ -23,7 +23,7 @@ const router = Router();
 router.route("/register").post(
     upload.fields([
         { name: "avatar", maxCount: 1 },
-        { name: "coverImage", maxCount: 1 },
+        { name: "banner", maxCount: 1 },
     ]),
     registerUser
 );
@@ -38,12 +38,14 @@ router.route("/current-user").get(verifyJWT, getCurrentUser);
 router.route("/update-account").patch(verifyJWT, updateAccountDetails);
 router.route("/avatar").patch(verifyJWT, upload.single("avatar"), updateAvatar);
 router
-    .route("/coverImage")
-    .patch(verifyJWT, upload.single("coverImage"), updateCoverImage);
+    .route("/banner")
+    .patch(verifyJWT, upload.single("banner"), updateBanner);
 router.route("/c/:username").get(verifyJWT, getUserChannelProfile);
 router.route("/:userId").get(verifyJWT, getUserById);
 router.route("/history/videos").get(verifyJWT, getWatchHistory);
-router.route("/history/remove/:videoId").patch(verifyJWT, removeVideoFromWatchHistory);
+router
+    .route("/history/remove/:videoId")
+    .patch(verifyJWT, removeVideoFromWatchHistory);
 router.route("/history/clear").patch(verifyJWT, clearWatchHistory);
 
 export default router;

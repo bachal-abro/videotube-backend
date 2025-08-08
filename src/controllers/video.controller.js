@@ -45,7 +45,7 @@ const getVideosFromSubscriptions = asyncHandler(async (req, res) => {
                     },
                     {
                         $project: {
-                            coverImage: 0,
+                            banner: 0,
                             email: 0,
                             watchHistory: 0,
                             password: 0,
@@ -346,7 +346,7 @@ const getVideoById = asyncHandler(async (req, res) => {
                     },
                     {
                         $project: {
-                            coverImage: 0,
+                            banner: 0,
                             email: 0,
                             watchHistory: 0,
                             password: 0,
