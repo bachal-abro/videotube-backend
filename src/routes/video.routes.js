@@ -44,6 +44,6 @@ router
     .patch(upload.single("thumbnail"), updateVideo);
 
 router.route("/toggle/visibility/:videoId").patch(toggleVisibilityStatus);
-router.route("/user/current").get(getAllVideosOfUser);
+router.route("/user/:userId").get(getAllVideosOfUser);
 
 export default router
