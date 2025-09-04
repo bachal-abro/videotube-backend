@@ -51,37 +51,25 @@ const registerUser = asyncHandler(async (req, res) => {
         );
     }
 
-    // Get paths of avatar and banner
-    const avatarLocalPath = req.files?.avatar[0]?.path;
+    // // Get paths of avatar and banner
+    // const avatarLocalPath = req.files?.avatar[0]?.path;
 
-    let bannerLocalPath;
-    if (
-        req.files &&
-        Array.isArray(req.files.banner) &&
-        req.files.banner.length > 0
-    ) {
-        bannerLocalPath = req.files.banner[0].path;
-    }
+    // let bannerLocalPath;
+    // if (
+    //     req.files &&
+    //     Array.isArray(req.files.banner) &&
+    //     req.files.banner.length > 0
+    // ) {
+    //     bannerLocalPath = req.files.banner[0].path;
+    // }
 
-    // Check if Avatar exists
-    if (!avatarLocalPath) {
-        throw new ApiError(400, "Avatar does not exist");
-    }
-
-    // Upload on cloudinary
-    const avatar = await uploadOnCloudinary(avatarLocalPath);
-    const banner = await uploadOnCloudinary(bannerLocalPath);
-
-    // Check if avatar is successfully uploaded
-    if (!avatar) {
-        throw new ApiError(400, "Failed to upload avatar");
-    }
+    // // Upload on cloudinary
+    // const avatar = await uploadOnCloudinary(avatarLocalPath);
+    // const banner = await uploadOnCloudinary(bannerLocalPath);
 
     // Create entry in database
     const user = await User.create({
         displayName,
-        avatar: avatar.url,
-        banner: banner?.url || "",
         email,
         password,
         username: username.toLowerCase(),
