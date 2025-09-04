@@ -203,10 +203,24 @@ const getAllVideos = asyncHandler(async (req, res) => {
 const getAllVideosOfUser = asyncHandler(async (req, res) => {
     const { userId } = req.params;
 
-    const videos = await Video.find({ owner: userId });
+    const videos = await Video.find({ owner: userId, visibility: "public" });
     if (!videos || videos.length === 0) {
         new ApiError(400, "Failed to fetched videos");
     }
+
+    return res
+        .status(200)
+        .json(
+            new ApiResponse(200, videos, {}, "All videos fetched successfully")
+        );
+});
+const getAllVideosOfAuthUser = asyncHandler(async (req, res) => {
+    const userId = req?.user?._id;
+
+    if (!userId) {
+        new ApiError(403, "User must be logged in!");
+    }
+    const videos = await Video.find({ owner: userId });
 
     return res
         .status(200)
@@ -495,4 +509,5 @@ export {
     deleteVideo,
     toggleVisibilityStatus,
     getAllVideosOfUser,
+    getAllVideosOfAuthUser,
 };

@@ -8,6 +8,7 @@ import {
     toggleVisibilityStatus,
     updateVideo,
     getAllVideosOfUser,
+    getAllVideosOfAuthUser,
 } from "../controllers/video.controller.js"
 import {verifyJWT} from "../middlewares/auth.middleware.js"
 import {upload} from "../middlewares/multer.middleware.js"
@@ -45,5 +46,6 @@ router
 
 router.route("/toggle/visibility/:videoId").patch(toggleVisibilityStatus);
 router.route("/user/:userId").get(getAllVideosOfUser);
+router.route("/auth/user").get(getAllVideosOfAuthUser);
 
 export default router
