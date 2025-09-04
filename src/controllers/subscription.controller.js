@@ -88,11 +88,55 @@ const getChannelSubscribers = asyncHandler(async (req, res) => {
 const getSubscribedChannels = asyncHandler(async (req, res) => {
     const { subscriberId } = req.params;
 
-    const subscribedToList = await Subscription.find({
-        subscriber: subscriberId,
-    });
-
-    console.log("Channels", subscribedToList);
+    const subscribedToList = await Subscription.aggregate([
+        {
+            $match: { subscriber: new mongoose.Types.ObjectId(subscriberId) },
+        },
+        {
+            $lookup: {
+                from: "users",
+                localField: "channel",
+                foreignField: "_id",
+                as: "subscriptionChannels",
+                pipeline: [
+                    {
+                        $lookup: {
+                            from: "subscriptions",
+                            localField: "_id",
+                            foreignField: "channel",
+                            as: "subscribers",
+                            pipeline: [
+                                {
+                                    $count: "subscribersCount",
+                                },
+                            ],
+                        },
+                    },
+                    {
+                        $addFields: {
+                            subscribersCount: {
+                                $first: "$subscribers.subscribersCount",
+                            },
+                        },
+                    },
+                ],
+            },
+        },
+        {
+            $unwind: "$subscriptionChannels",
+        },
+        {
+            $replaceRoot: { newRoot: "$subscriptionChannels" }, // Return just the video objects
+        },
+        {
+            $project: {
+                avatar: 1,
+                displayName: 1,
+                username:1,
+                subscribersCount: 1,
+            },
+        },
+    ]);
 
     if (!subscribedToList) {
         throw new ApiError(404, "Subscriptions not found");
