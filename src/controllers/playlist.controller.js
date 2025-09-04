@@ -34,7 +34,6 @@ const createPlaylist = asyncHandler(async (req, res) => {
 
 const getUserPlaylists = asyncHandler(async (req, res) => {
     const { userId } = req.params;
-    // TODO: get user playlists
 
     if (!userId) {
         throw new ApiError(400, "User id is required");
@@ -52,7 +51,6 @@ const getUserPlaylists = asyncHandler(async (req, res) => {
 
 const getPlaylistById = asyncHandler(async (req, res) => {
     const { playlistId } = req.params;
-    //TODO: get playlist by id
 
     if (!playlistId) {
         throw new ApiError(400, "Playlist id not provided");
@@ -103,11 +101,6 @@ const getPlaylistById = asyncHandler(async (req, res) => {
             },
         },
     ]);
-
-    if (!playlist) {
-        throw new ApiError(400, "Playlist not found");
-    }
-
     return res
         .status(200)
         .json(
